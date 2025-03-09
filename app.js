@@ -1,24 +1,35 @@
 require('dotenv').config();
 
 const express = require('express');
-const mysql = require('mysql2');
 const path = require('path');
 const bodyParser = require('body-parser');
+const admin = require('firebase-admin');
 
 const app = express();
 
-// Configuración de la base de datos
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+// Configuración de Firebase con variables de entorno
+const serviceAccount = {
+    "type": process.env.FIREBASE_TYPE || "service_account",
+    "project_id": process.env.FIREBASE_PROJECT_ID,
+    "private_key_id": process.env.FIREBASE_PRIVATE_KEY_ID,
+    "private_key": process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : undefined,
+    "client_email": process.env.FIREBASE_CLIENT_EMAIL,
+    "client_id": process.env.FIREBASE_CLIENT_ID,
+    "auth_uri": process.env.FIREBASE_AUTH_URI,
+    "token_uri": process.env.FIREBASE_TOKEN_URI,
+    "auth_provider_x509_cert_url": process.env.FIREBASE_AUTH_PROVIDER_CERT_URL,
+    "client_x509_cert_url": process.env.FIREBASE_CLIENT_CERT_URL,
+    "universe_domain": process.env.FIREBASE_UNIVERSE_DOMAIN || "googleapis.com"
+};
+
+// Inicializar Firebase
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
 });
 
-db.connect(err => {
-    if (err) throw err;
-    console.log('Conectado a MySQL');
-});
+// Obtener referencia a Firestore
+const db = admin.firestore();
+const personajesCollection = db.collection('personajes');
 
 // Middleware para procesar datos de formularios
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -76,111 +87,154 @@ function validarCampos(datos) {
 }
 
 // Página principal - mostrar formulario y lista
-app.get('/', (req, res) => {
-    db.query('SELECT * FROM personajes', (err, resultados) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send('Error al obtener personajes');
-        }
-        res.render('index', { personajes: resultados, errores: null });
-    });
+app.get('/', async (req, res) => {
+    try {
+        const snapshot = await personajesCollection.get();
+        const personajes = [];
+        
+        snapshot.forEach(doc => {
+            personajes.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        res.render('index', { personajes: personajes, errores: null });
+    } catch (error) {
+        console.error('Error al obtener personajes:', error);
+        res.status(500).send('Error al obtener personajes');
+    }
 });
 
 // Registrar un personaje
-app.post('/registrar', (req, res) => {
+app.post('/registrar', async (req, res) => {
     const errores = validarCampos(req.body);
     
     if (errores.length > 0) {
-        // Si hay errores, cargar de nuevo la página con los errores
-        db.query('SELECT * FROM personajes', (err, resultados) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).send('Error al obtener personajes');
-            }
-            return res.render('index', { 
-                personajes: resultados, 
-                errores: errores,
-                datos: req.body // Devuelve los datos para que el usuario no tenga que escribirlos de nuevo
+        try {
+            const snapshot = await personajesCollection.get();
+            const personajes = [];
+            
+            snapshot.forEach(doc => {
+                personajes.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
             });
-        });
-        return;
+            
+            return res.render('index', { 
+                personajes: personajes, 
+                errores: errores,
+                datos: req.body
+            });
+        } catch (error) {
+            console.error('Error al obtener personajes:', error);
+            return res.status(500).send('Error al obtener personajes');
+        }
     }
     
     const { nombre, alias, rol, edad, ciudad, habilidades, descripcion } = req.body;
-    const sql = 'INSERT INTO personajes (nombre, alias, rol, edad, ciudad, habilidades, descripcion) VALUES (?, ?, ?, ?, ?, ?, ?)';
     
-    db.query(sql, [nombre, alias, rol, edad, ciudad, habilidades, descripcion], err => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send('Error al registrar personaje');
-        }
+    try {
+        await personajesCollection.add({
+            nombre,
+            alias,
+            rol,
+            edad: parseInt(edad),
+            ciudad,
+            habilidades,
+            descripcion
+        });
+        
         res.redirect('/');
-    });
+    } catch (error) {
+        console.error('Error al registrar personaje:', error);
+        res.status(500).send('Error al registrar personaje');
+    }
 });
 
 // Eliminar un personaje
-app.post('/eliminar/:id', (req, res) => {
+app.post('/eliminar/:id', async (req, res) => {
     const id = req.params.id;
     
-    if (!id || isNaN(parseInt(id))) {
+    if (!id) {
         return res.status(400).send('ID de personaje inválido');
     }
     
-    db.query('DELETE FROM personajes WHERE id = ?', [id], err => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send('Error al eliminar personaje');
-        }
+    try {
+        await personajesCollection.doc(id).delete();
         res.redirect('/');
-    });
+    } catch (error) {
+        console.error('Error al eliminar personaje:', error);
+        res.status(500).send('Error al eliminar personaje');
+    }
 });
 
 // Editar un personaje (mostrar formulario con datos)
-app.get('/editar/:id', (req, res) => {
+app.get('/editar/:id', async (req, res) => {
     const id = req.params.id;
     
-    if (!id || isNaN(parseInt(id))) {
+    if (!id) {
         return res.status(400).send('ID de personaje inválido');
     }
     
-    db.query('SELECT * FROM personajes WHERE id = ?', [id], (err, resultado) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send('Error al obtener datos para editar');
+    try {
+        const doc = await personajesCollection.doc(id).get();
+        
+        if (!doc.exists) {
+            return res.redirect('/');
         }
-        if (resultado.length === 0) return res.redirect('/');
-
-        res.render('editar', { personaje: resultado[0], errores: null });
-    });
+        
+        const personaje = {
+            id: doc.id,
+            ...doc.data()
+        };
+        
+        res.render('editar', { personaje: personaje, errores: null });
+    } catch (error) {
+        console.error('Error al obtener datos para editar:', error);
+        res.status(500).send('Error al obtener datos para editar');
+    }
 });
 
 // Actualizar personaje
-app.post('/actualizar/:id', (req, res) => {
+app.post('/actualizar/:id', async (req, res) => {
     const id = req.params.id;
     
-    if (!id || isNaN(parseInt(id))) {
+    if (!id) {
         return res.status(400).send('ID de personaje inválido');
     }
     
     const errores = validarCampos(req.body);
     
     if (errores.length > 0) {
-        // Si hay errores, volver a mostrar el formulario con los errores
         return res.render('editar', { 
-            personaje: req.body,
+            personaje: {
+                id,
+                ...req.body
+            },
             errores: errores
         });
     }
     
     const { nombre, alias, rol, edad, ciudad, habilidades, descripcion } = req.body;
-    db.query('UPDATE personajes SET nombre=?, alias=?, rol=?, edad=?, ciudad=?, habilidades=?, descripcion=? WHERE id=?',
-        [nombre, alias, rol, edad, ciudad, habilidades, descripcion, id], err => {
-            if (err) {
-                console.error(err);
-                return res.status(500).send('Error al actualizar personaje');
-            }
-            res.redirect('/');
+    
+    try {
+        await personajesCollection.doc(id).update({
+            nombre,
+            alias,
+            rol,
+            edad: parseInt(edad),
+            ciudad,
+            habilidades,
+            descripcion
         });
+        
+        res.redirect('/');
+    } catch (error) {
+        console.error('Error al actualizar personaje:', error);
+        res.status(500).send('Error al actualizar personaje');
+    }
 });
 
 // Iniciar servidor

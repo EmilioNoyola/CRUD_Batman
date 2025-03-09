@@ -1,298 +1,363 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRUD de Personajes - Batman</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --batman-black: #0A0E14;
-            --batman-red: #B71C1C;
-            --batman-dark-red: #7F0000;
-            --batman-grey: #4D4D4D;
-            --batman-dark-grey: #2D2D2D;
-            --gotham-light: #8E9EAB;
-        }
-
-        body {
-            background-color: var(--batman-black);
-            color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .batman-container {
-            background-color: rgba(13, 17, 23, 0.9);
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(183, 28, 28, 0.5);
-            padding: 30px;
-            margin: 30px auto;
-            position: relative;
-            overflow: hidden;
-            width: 80%; /* Reducimos el ancho para que se vea mejor el fondo */
-            max-width: 900px;
-        }
-
-        .batman-container::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background-color: var(--batman-red);
-        }
-
-        .batman-title {
-            color: var(--batman-red);
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 30px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .batman-title::before {
-            content: "\f6dc";
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            margin-right: 15px;
-            font-size: 2.2rem;
-        }
-
-        .batman-form {
-            background-color: var(--batman-dark-grey);
-            padding: 25px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            border-left: 4px solid var(--batman-red);
-        }
-
-        .form-label {
-            color: var(--batman-red);
-            font-weight: 600;
-        }
-
-        .form-control, .form-select {
-            background-color: var(--batman-grey);
-            border: 1px solid #6c757d;
-            color: white;
-        }
-
-        .form-control:focus, .form-select:focus {
-            background-color: var(--batman-dark-grey);
-            color: white;
-            border-color: var(--batman-red);
-            box-shadow: 0 0 0 0.25rem rgba(183, 28, 28, 0.25);
-        }
-
-        .batman-btn {
-            background-color: var(--batman-red);
-            color: var(--batman-black);
-            border: none;
-            font-weight: bold;
-            text-transform: uppercase;
-            padding: 8px 20px;
-            box-shadow: 0 0 10px rgba(183, 28, 28, 0.4);
-            transition: all 0.3s ease;
-        }
-
-        .batman-btn:hover {
-            background-color: #da3232;
-            box-shadow: 0 0 15px#da3232;
-            transform: translateY(-2px);
-        }
-
-        .batman-table {
-            background-color: var(--batman-dark-grey);
-            color: white;
-            border-radius: 8px;
-        }
-
-        .batman-table th, .batman-table td {
-            padding: 10px;
-            text-align: center;
-        }
-
-        .batman-table thead {
-            background-color: var(--batman-black);
-            color: var(--batman-red);
-            text-transform: uppercase;
-        }
-
-        .batman-table tbody tr:hover {
-            background-color: rgba(242, 80, 80, 0.1);
-        }
-
-        .batman-alert {
-            background-color: #300;
-            color: white;
-            border-color: #900;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
-        }
-
-        .batman-alert-heading {
-            color: var(--batman-red);
-        }
-
-        .gotham-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('https://preview.redd.it/cciryoim2wt71.jpg?auto=webp&s=cabb31d7907a96c11fb40e75a0cd9af7b17c9c01') no-repeat center center;
-            background-size: cover;
-            opacity: 0.2; /* Ajustado para que no opaque demasiado el contenido */
-            z-index: -1;
-        }
-
-        @media (max-width: 767px) {
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>CRUD Batman - Noyola Gómez Emilio Damian</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <style>
+            :root {
+                --batman-black: #0A0E14;
+                --batman-red: #B71C1C;
+                --batman-dark-red: #7F0000;
+                --batman-grey: #4D4D4D;
+                --batman-dark-grey: #2D2D2D;
+                --gotham-light: #8E9EAB;
+            }
+        
+            body {
+                background-color: var(--batman-black);
+                color: #fff;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+        
             .batman-container {
-                padding: 15px;
-                width: 90%;
+                background-color: rgba(13, 17, 23, 0.9);
+                border-radius: 15px;
+                box-shadow: 0 0 20px rgba(183, 28, 28, 0.5);
+                padding: 30px;
+                margin: 30px auto;
+                position: relative;
+                overflow: hidden;
+                width: 80%;
+                max-width: 900px;
             }
-            .batman-title::before {
-                font-size: 1.8rem;
+        
+            .batman-container::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 5px;
+                background-color: var(--batman-red);
             }
-            .batman-form {
-                padding: 15px;
-            }
-            .td-actions {
+
+            .batman-title {
+                color: var(--batman-red);
+                font-weight: bold;
+                text-transform: uppercase;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
                 display: flex;
-                flex-direction: column;
-                gap: 5px;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 5px; /* Reducido de 10px a 5px */
             }
+
+            .batman-subtitle {
+                color: var(--batman-grey);
+                font-size: 1.2rem;
+                margin-top: 0;
+            }
+
+            .batman-form {
+                background-color: var(--batman-dark-grey);
+                padding: 25px;
+                border-radius: 10px;
+                margin-bottom: 30px;
+                border-left: 4px solid var(--batman-red);
+            }
+        
+            .form-label {
+                color: var(--batman-red);
+                font-weight: 600;
+            }
+        
+            .form-control, .form-select {
+                background-color: var(--batman-grey);
+                border: 1px solid #6c757d;
+                color: white;
+            }
+        
+            .form-control:focus, .form-select:focus {
+                background-color: var(--batman-dark-grey);
+                color: white;
+                border-color: var(--batman-red);
+                box-shadow: 0 0 0 0.25rem rgba(183, 28, 28, 0.25);
+            }
+        
             .batman-btn {
-                padding: 6px 12px;
-                font-size: 0.9rem;
+                background-color: var(--batman-red);
+                color: var(--batman-black);
+                border: none;
+                font-weight: bold;
+                text-transform: uppercase;
+                padding: 8px 20px;
+                box-shadow: 0 0 10px rgba(183, 28, 28, 0.4);
+                transition: all 0.3s ease;
             }
-            .table-responsive {
-                font-size: 0.9rem;
+        
+            .batman-btn:hover {
+                background-color: #da3232;
+                box-shadow: 0 0 15px#da3232;
+                transform: translateY(-2px);
             }
-        }
-    </style>
-</head>
-<body>
-    <div class="gotham-backdrop"></div>
-    <div class="container batman-container">
-        <h2 class="batman-title text-center">CRUD Noyola Gómez Emilio Damian</h2>
         
-        <!-- Alertas de error -->
-        <% if (locals.errores && errores && errores.length > 0) { %>
-            <div class="alert batman-alert">
-                <h4 class="alert-heading batman-alert-heading">Se encontraron errores:</h4>
-                <ul>
-                    <% errores.forEach(error => { %>
-                        <li><%= error %></li>
-                    <% }); %>
-                </ul>
-            </div>
-        <% } %>
+            .batman-table {
+                background-color: var(--batman-dark-grey) !important;
+                color: white !important;
+                border-radius: 10px !important;
+                border-left: 4px solid var(--batman-red) !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                overflow: hidden !important;
+            }
         
-        <!-- Formulario de Registro -->
-        <form action="/registrar" method="post" class="batman-form mb-4">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="nombre" class="form-label">Nombre:</label>
-                    <input type="text" name="nombre" id="nombre" class="form-control" value="<%= locals.datos ? datos.nombre : '' %>" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="alias" class="form-label">Alias:</label>
-                    <input type="text" name="alias" id="alias" class="form-control" value="<%= locals.datos ? datos.alias : '' %>" required>
-                </div>
+            .batman-table th, 
+            .batman-table thead th {
+                background-color: var(--batman-black) !important;
+                color: var(--batman-red) !important;
+                text-transform: uppercase !important;
+                border-color: var(--batman-black) !important;
+            }
+        
+            .batman-table td {
+                background-color: var(--batman-dark-grey) !important;
+                color: white !important;
+                border-color: #444 !important;
+                padding: 10px !important;
+                text-align: center !important;
+            }
+        
+            .batman-table tbody tr:hover td {
+                background-color: #3a3a3a !important;
+            }
+        
+            .id-cell {
+                max-width: 60px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        
+            .batman-alert {
+                background-color: #300;
+                color: white;
+                border-color: #900;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+            }
+        
+            .batman-alert-heading {
+                color: var(--batman-red);
+            }
+        
+            .batman-btn-warning {
+                background-color: #79c540;
+                color: var(--batman-black);
+                border: none;
+                font-weight: bold;
+                transition: all 0.3s ease;
+            }
+        
+            .batman-btn-warning:hover {
+                background-color: #94f04e;
+                transform: translateY(-2px);
+            }
+        
+            .batman-btn-danger {
+                background-color: var(--batman-dark-red);
+                color: white;
+                border: none;
+                font-weight: bold;
+                transition: all 0.3s ease;
+            }
+        
+            .batman-btn-danger:hover {
+                background-color: var(--batman-red);
+                transform: translateY(-2px);
+            }
+        
+            .role-icon {
+                display: inline-block;
+                margin-right: 5px;
+            }
+        
+            .role-hero {
+                color: #4caf50;
+            }
+        
+            .role-villain {
+                color: var(--batman-red);
+            }
+        
+            .role-ally {
+                color: #2196f3;
+            }
+        
+            .gotham-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: url('https://preview.redd.it/cciryoim2wt71.jpg?auto=webp&s=cabb31d7907a96c11fb40e75a0cd9af7b17c9c01') no-repeat center center;
+                background-size: cover;
+                opacity: 0.2;
+                z-index: -1;
+            }
+        
+            @media (max-width: 767px) {
+                .batman-title {
+                    font-size: 1.5rem;
+                }
+                
+                .batman-subtitle {
+                    font-size: 1rem;
+                }
+                .batman-container {
+                    padding: 15px;
+                    width: 90%;
+                }
+                .batman-title::before {
+                    font-size: 1.8rem;
+                }
+                .batman-form {
+                    padding: 15px;
+                }
+                .td-actions {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 5px;
+                }
+                .batman-btn {
+                    padding: 6px 12px;
+                    font-size: 0.9rem;
+                }
+                .table-responsive {
+                    font-size: 0.9rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="gotham-backdrop"></div>
+        <div class="container batman-container">
+            <div class="batman-header text-center">
+                <h2 class="batman-title">FORMULARIO<span class="batman-logo"></span></h2>
+                <p class="batman-subtitle">Noyola Gómez Emilio Damian</p>
             </div>
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="rol" class="form-label">Rol:</label>
-                    <select name="rol" id="rol" class="form-select" required>
-                        <option value="">Selecciona...</option>
-                        <option value="héroe" <%= locals.datos && datos.rol === 'héroe' ? 'selected' : '' %>>Héroe</option>
-                        <option value="villano" <%= locals.datos && datos.rol === 'villano' ? 'selected' : '' %>>Villano</option>
-                        <option value="aliado" <%= locals.datos && datos.rol === 'aliado' ? 'selected' : '' %>>Aliado</option>
-                    </select>
+            
+            <% if (locals.errores && errores && errores.length > 0) { %>
+                <div class="alert batman-alert">
+                    <h4 class="alert-heading batman-alert-heading">No puedes registarte:</h4>
+                    <ul>
+                        <% errores.forEach(error => { %>
+                            <li><%= error %></li>
+                        <% }); %>
+                    </ul>
                 </div>
-                <div class="col-md-4 mb-3">
-                    <label for="edad" class="form-label">Edad:</label>
-                    <input type="number" name="edad" id="edad" class="form-control" value="<%= locals.datos ? datos.edad : '' %>" required>
+            <% } %>
+            
+            <form action="/registrar" method="post" class="batman-form mb-4">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="nombre" class="form-label">Nombre:</label>
+                        <input type="text" name="nombre" id="nombre" class="form-control" value="<%= locals.datos ? datos.nombre : '' %>" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="alias" class="form-label">Alias:</label>
+                        <input type="text" name="alias" id="alias" class="form-control" value="<%= locals.datos ? datos.alias : '' %>" required>
+                    </div>
                 </div>
-                <div class="col-md-4 mb-3">
-                    <label for="ciudad" class="form-label">Ciudad:</label>
-                    <input type="text" name="ciudad" id="ciudad" class="form-control" value="<%= locals.datos ? datos.ciudad : '' %>" required>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="rol" class="form-label">Rol:</label>
+                        <select name="rol" id="rol" class="form-select" required>
+                            <option value="">Selecciona...</option>
+                            <option value="héroe" <%= locals.datos && datos.rol === 'héroe' ? 'selected' : '' %>>Héroe</option>
+                            <option value="villano" <%= locals.datos && datos.rol === 'villano' ? 'selected' : '' %>>Villano</option>
+                            <option value="aliado" <%= locals.datos && datos.rol === 'aliado' ? 'selected' : '' %>>Aliado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="edad" class="form-label">Edad:</label>
+                        <input type="number" name="edad" id="edad" class="form-control" value="<%= locals.datos ? datos.edad : '' %>" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="ciudad" class="form-label">Ciudad:</label>
+                        <input type="text" name="ciudad" id="ciudad" class="form-control" value="<%= locals.datos ? datos.ciudad : '' %>" required>
+                    </div>
                 </div>
-            </div>
-            <div class="mb-3">
-                <label for="habilidades" class="form-label">Habilidades:</label>
-                <input type="text" name="habilidades" id="habilidades" class="form-control" value="<%= locals.datos ? datos.habilidades : '' %>" required>
-            </div>
-            <div class="mb-3">
-                <label for="descripcion" class="form-label">Descripción:</label>
-                <textarea name="descripcion" id="descripcion" class="form-control" rows="3" required><%= locals.datos ? datos.descripcion : '' %></textarea>
-            </div>
-            <button type="submit" class="btn batman-btn mt-2">
-                <i class="fas fa-save me-2"></i>Registrar
-            </button>
-        </form>
+                <div class="mb-3">
+                    <label for="habilidades" class="form-label">Habilidades:</label>
+                    <input type="text" name="habilidades" id="habilidades" class="form-control" value="<%= locals.datos ? datos.habilidades : '' %>" required>
+                </div>
+                <div class="mb-3">
+                    <label for="descripcion" class="form-label">Descripción:</label>
+                    <textarea name="descripcion" id="descripcion" class="form-control" rows="3" required><%= locals.datos ? datos.descripcion : '' %></textarea>
+                </div>
+                <button type="submit" class="btn batman-btn mt-2">
+                    <i class="fas fa-save me-2"></i>Registrar
+                </button>
+            </form>
 
-        <!-- Tabla de personajes -->
-        <div class="table-responsive">
-            <table class="table batman-table table-hover table-bordered text-center">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Alias</th>
-                        <th>Rol</th>
-                        <th>Edad</th>
-                        <th>Ciudad</th>
-                        <th>Habilidades</th>
-                        <th>Descripción</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% personajes.forEach(personaje => { %>
-                    <tr>
-                        <td><%= personaje.id %></td>
-                        <td><%= personaje.nombre %></td>
-                        <td><strong><%= personaje.alias %></strong></td>
-                        <td>
-                            <% if (personaje.rol === 'héroe') { %>
-                                <span class="role-icon role-hero"><i class="fas fa-mask"></i></span>
-                            <% } else if (personaje.rol === 'villano') { %>
-                                <span class="role-icon role-villain"><i class="fas fa-skull"></i></span>
-                            <% } else if (personaje.rol === 'aliado') { %>
-                                <span class="role-icon role-ally"><i class="fas fa-handshake"></i></span>
-                            <% } %>
-                            <%= personaje.rol %>
-                        </td>
-                        <td><%= personaje.edad %></td>
-                        <td><%= personaje.ciudad %></td>
-                        <td><%= personaje.habilidades %></td>
-                        <td><%= personaje.descripcion %></td>
-                        <td class="td-actions">
-                            <div class="d-flex gap-2">
-                                <a href="/editar/<%= personaje.id %>" class="btn batman-btn-warning btn-sm">
-                                    <i class="fas fa-edit me-1"></i>Editar
-                                </a>
-                                <form action="/eliminar/<%= personaje.id %>" method="post" style="display:inline;">
-                                    <button type="submit" class="btn batman-btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar a <%= personaje.alias %>?')">
-                                        <i class="fas fa-trash-alt me-1"></i>Eliminar
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    <% }); %>
-                </tbody>
-            </table>
+            <!-- Tabla de personajes -->
+            <div class="table-responsive">
+                <table class="table batman-table table-hover table-bordered text-center">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Alias</th>
+                            <th>Rol</th>
+                            <th>Edad</th>
+                            <th>Ciudad</th>
+                            <th>Habilidades</th>
+                            <th>Descripción</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% personajes.forEach(personaje => { %>
+                        <tr>
+                            <td class="id-cell"><%= personaje.id %></td>
+                            <td><%= personaje.nombre %></td>
+                            <td><strong><%= personaje.alias %></strong></td>
+                            <td>
+                                <% if (personaje.rol === 'héroe') { %>
+                                    <span class="role-icon role-hero"><i class="fas fa-mask"></i></span>
+                                <% } else if (personaje.rol === 'villano') { %>
+                                    <span class="role-icon role-villain"><i class="fas fa-skull"></i></span>
+                                <% } else if (personaje.rol === 'aliado') { %>
+                                    <span class="role-icon role-ally"><i class="fas fa-handshake"></i></span>
+                                <% } %>
+                                <%= personaje.rol %>
+                            </td>
+                            <td><%= personaje.edad %></td>
+                            <td><%= personaje.ciudad %></td>
+                            <td><%= personaje.habilidades %></td>
+                            <td><%= personaje.descripcion %></td>
+                            <td class="td-actions">
+                                <div class="d-flex gap-2">
+                                    <a href="/editar/<%= personaje.id %>" class="btn batman-btn-warning btn-sm">
+                                        <i class="fas fa-edit me-1"></i>Editar
+                                    </a>
+                                    <form action="/eliminar/<%= personaje.id %>" method="post" style="display:inline;">
+                                        <button type="submit" class="btn batman-btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar a <%= personaje.alias %>?')">
+                                            <i class="fas fa-trash-alt me-1"></i>Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
 </html>

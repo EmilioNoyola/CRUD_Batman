@@ -9,29 +9,31 @@
     <style>
         :root {
             --batman-black: #0A0E14;
-            --batman-yellow: #FFCB05;
+            --batman-red: #B71C1C;
+            --batman-dark-red: #7F0000;
             --batman-grey: #4D4D4D;
             --batman-dark-grey: #2D2D2D;
             --gotham-light: #8E9EAB;
         }
-        
+    
         body {
             background-color: var(--batman-black);
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+    
         .batman-container {
             background-color: rgba(13, 17, 23, 0.9);
             border-radius: 15px;
-            box-shadow: 0 0 20px rgba(255, 203, 5, 0.3);
+            box-shadow: 0 0 20px rgba(183, 28, 28, 0.5);
             padding: 30px;
-            margin-top: 30px;
-            margin-bottom: 30px;
+            margin: 30px auto;
             position: relative;
             overflow: hidden;
+            width: 80%;
+            max-width: 900px;
         }
-        
+    
         .batman-container::before {
             content: "";
             position: absolute;
@@ -39,93 +41,95 @@
             left: 0;
             width: 100%;
             height: 5px;
-            background-color: var(--batman-yellow);
+            background-color: var(--batman-red);
         }
-        
+
         .batman-title {
-            color: var(--batman-yellow);
+            color: var(--batman-red);
             font-weight: bold;
             text-transform: uppercase;
-            margin-bottom: 30px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-bottom: 5px; /* Reducido de 10px a 5px */
         }
-        
-        .batman-title::before {
-            content: "\f6dc";
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            margin-right: 15px;
-            font-size: 2.2rem;
+
+        .batman-subtitle {
+            color: var(--batman-grey);
+            font-size: 1.2rem;
+            margin-top: 0;
         }
-        
+    
         .batman-form {
             background-color: var(--batman-dark-grey);
             padding: 25px;
             border-radius: 10px;
             margin-bottom: 30px;
-            border-left: 4px solid var(--batman-yellow);
+            border-left: 4px solid var(--batman-red);
         }
-        
+    
         .form-label {
-            color: var(--batman-yellow);
+            color: var(--batman-red);
             font-weight: 600;
         }
-        
+    
         .form-control, .form-select {
             background-color: var(--batman-grey);
             border: 1px solid #6c757d;
             color: white;
         }
-        
+    
         .form-control:focus, .form-select:focus {
             background-color: var(--batman-dark-grey);
             color: white;
-            border-color: var(--batman-yellow);
-            box-shadow: 0 0 0 0.25rem rgba(255, 203, 5, 0.25);
+            border-color: var(--batman-red);
+            box-shadow: 0 0 0 0.25rem rgba(183, 28, 28, 0.25);
         }
-        
+    
         .batman-btn {
-            background-color: var(--batman-yellow);
+            background-color: var(--batman-red);
             color: var(--batman-black);
             border: none;
             font-weight: bold;
             text-transform: uppercase;
             padding: 8px 20px;
-            box-shadow: 0 0 10px rgba(255, 203, 5, 0.4);
+            box-shadow: 0 0 10px rgba(183, 28, 28, 0.4);
             transition: all 0.3s ease;
         }
-        
+    
         .batman-btn:hover {
-            background-color: #FFF;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+            background-color: #da3232;
+            box-shadow: 0 0 15px#da3232;
             transform: translateY(-2px);
         }
-        
+    
         .batman-btn-success {
-            background-color: #198754;
+            background-color: #2E7D32;
             color: white;
-            box-shadow: 0 0 10px rgba(25, 135, 84, 0.4);
+            box-shadow: 0 0 10px rgba(46, 125, 50, 0.4);
         }
-        
+    
         .batman-btn-success:hover {
-            background-color: #157347;
+            background-color: #388E3C;
+            box-shadow: 0 0 15px rgba(56, 142, 60, 0.6);
             color: white;
+            transform: translateY(-2px);
         }
-        
+    
         .batman-btn-secondary {
             background-color: var(--batman-grey);
             color: white;
             box-shadow: 0 0 10px rgba(77, 77, 77, 0.4);
         }
-        
+    
         .batman-btn-secondary:hover {
-            background-color: var(--gotham-light);
-            color: var(--batman-black);
+            background-color: #666;
+            box-shadow: 0 0 15px rgba(102, 102, 102, 0.6);
+            color: white;
+            transform: translateY(-2px);
         }
-        
+    
         .batman-alert {
             background-color: #300;
             color: white;
@@ -133,40 +137,49 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
         }
-        
+    
         .batman-alert-heading {
-            color: var(--batman-yellow);
+            color: var(--batman-red);
         }
-        
+    
         .gotham-backdrop {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('https://cdnjs.cloudflare.com/ajax/libs/placeholder-pics/64/gotham.jpg') no-repeat center center;
+            background: url('https://preview.redd.it/cciryoim2wt71.jpg?auto=webp&s=cabb31d7907a96c11fb40e75a0cd9af7b17c9c01') no-repeat center center;
             background-size: cover;
-            opacity: 0.1;
+            opacity: 0.2;
             z-index: -1;
         }
-        
+    
         .character-info {
             position: absolute;
             top: 10px;
             right: 15px;
             font-size: 0.9rem;
-            color: var(--batman-yellow);
+            color: var(--batman-red);
             display: flex;
             align-items: center;
         }
-        
+    
         @media (max-width: 767px) {
             .batman-container {
                 padding: 15px;
+                width: 90%;
             }
             
             .batman-title::before {
                 font-size: 1.8rem;
+            }
+            
+            .batman-title {
+                font-size: 1.5rem;
+            }
+                
+            .batman-subtitle {
+                font-size: 1rem;
             }
             
             .batman-form {
@@ -199,7 +212,10 @@
             <i class="fas fa-user-edit me-2"></i> Editando: <strong class="ms-2"><%= personaje.alias %></strong>
         </div>
         
-        <h2 class="batman-title text-center">Editar Personaje</h2>
+        <div class="batman-header text-center">
+            <h2 class="batman-title">EDITAR<span class="batman-logo"></span></h2>
+            <p class="batman-subtitle">Noyola Gómez Emilio Damian</p>
+        </div>
         
         <!-- Alertas de error -->
         <% if (locals.errores && errores && errores.length > 0) { %>

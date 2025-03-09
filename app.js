@@ -47,14 +47,37 @@ function validarCampos(datos) {
     const { nombre, alias, rol, edad, ciudad, habilidades, descripcion } = datos;
     const errores = [];
     
+    // Límites de caracteres para cada campo
+    const limites = {
+        nombre: 50,
+        alias: 30,
+        rol: 30,
+        ciudad: 50,
+        habilidades: 200,
+        descripcion: 500
+    };
+    
     // Validar que ningún campo esté vacío
     if (!nombre || nombre.trim() === '') errores.push('El nombre es obligatorio');
+    else if (nombre.length > limites.nombre) errores.push(`El nombre no debe exceder ${limites.nombre} caracteres`);
+    
     if (!alias || alias.trim() === '') errores.push('El alias es obligatorio');
+    else if (alias.length > limites.alias) errores.push(`El alias no debe exceder ${limites.alias} caracteres`);
+    
     if (!rol || rol.trim() === '') errores.push('El rol es obligatorio');
+    else if (rol.length > limites.rol) errores.push(`El rol no debe exceder ${limites.rol} caracteres`);
+    
     if (!edad || isNaN(edad) || edad <= 0) errores.push('La edad debe ser un número positivo');
+    else if (edad > 150) errores.push('La edad debe ser un valor razonable (máximo 150)');
+    
     if (!ciudad || ciudad.trim() === '') errores.push('La ciudad es obligatoria');
+    else if (ciudad.length > limites.ciudad) errores.push(`La ciudad no debe exceder ${limites.ciudad} caracteres`);
+    
     if (!habilidades || habilidades.trim() === '') errores.push('Las habilidades son obligatorias');
+    else if (habilidades.length > limites.habilidades) errores.push(`Las habilidades no deben exceder ${limites.habilidades} caracteres`);
+    
     if (!descripcion || descripcion.trim() === '') errores.push('La descripción es obligatoria');
+    else if (descripcion.length > limites.descripcion) errores.push(`La descripción no debe exceder ${limites.descripcion} caracteres`);
     
     // Validar que no contenga etiquetas HTML o JavaScript
     const contieneTags = (texto) => {
@@ -66,10 +89,15 @@ function validarCampos(datos) {
     
     const contieneScript = (texto) => {
         // Regex que detecta tags <script> o código JavaScript sospechoso
-        return /<script[\s\S]*?>|javascript:/i.test(texto);
+        return /<script[\s\S]*?>|javascript:|on\w+\s*=|eval\(|new Function\(|document\.cookie/i.test(texto);
     };
     
-    // Verificar cada campo para tags HTML o código script
+    // Validación contra caracteres especiales potencialmente peligrosos
+    const contieneCaracteresPeligrosos = (texto) => {
+        return /[\u0000-\u001F\u007F-\u009F\u2000-\u200F\uFEFF]/.test(texto);
+    };
+    
+    // Verificar cada campo para tags HTML, código script y caracteres peligrosos
     const camposTexto = { nombre, alias, ciudad, habilidades, descripcion };
     
     for (const [campo, valor] of Object.entries(camposTexto)) {
@@ -80,10 +108,34 @@ function validarCampos(datos) {
             if (contieneScript(valor)) {
                 errores.push(`El campo ${campo} contiene código JavaScript no permitido`);
             }
+            if (contieneCaracteresPeligrosos(valor)) {
+                errores.push(`El campo ${campo} contiene caracteres de control no permitidos`);
+            }
+        }
+    }
+    return errores;
+}
+
+// Función para sanitizar los datos antes de guardarlos en la base de datos
+function sanitizarDatos(datos) {
+    const datosSanitizados = {};
+    
+    // Para cada campo, eliminar espacios extras y sanitizar
+    for (const [campo, valor] of Object.entries(datos)) {
+        if (typeof valor === 'string') {
+            // Eliminar espacios en blanco al inicio y final, y reemplazar múltiples espacios por uno solo
+            datosSanitizados[campo] = valor.trim().replace(/\s+/g, ' ');
+        } else {
+            datosSanitizados[campo] = valor;
         }
     }
     
-    return errores;
+    // Asegurar que edad sea un número
+    if (datos.edad) {
+        datosSanitizados.edad = parseInt(datos.edad, 10) || 0;
+    }
+    
+    return datosSanitizados;
 }
 
 // Página principal - mostrar formulario y lista
@@ -133,23 +185,65 @@ app.post('/registrar', async (req, res) => {
         }
     }
     
-    const { nombre, alias, rol, edad, ciudad, habilidades, descripcion } = req.body;
+    // Sanitizar los datos antes de guardarlos
+    const datosSanitizados = sanitizarDatos(req.body);
     
     try {
         await personajesCollection.add({
-            nombre,
-            alias,
-            rol,
-            edad: parseInt(edad),
-            ciudad,
-            habilidades,
-            descripcion
+            nombre: datosSanitizados.nombre,
+            alias: datosSanitizados.alias,
+            rol: datosSanitizados.rol,
+            edad: datosSanitizados.edad,
+            ciudad: datosSanitizados.ciudad,
+            habilidades: datosSanitizados.habilidades,
+            descripcion: datosSanitizados.descripcion
         });
         
         res.redirect('/');
     } catch (error) {
         console.error('Error al registrar personaje:', error);
         res.status(500).send('Error al registrar personaje');
+    }
+});
+
+// Actualizar personaje
+app.post('/actualizar/:id', async (req, res) => {
+    const id = req.params.id;
+    
+    if (!id) {
+        return res.status(400).send('ID de personaje inválido');
+    }
+    
+    const errores = validarCampos(req.body);
+    
+    if (errores.length > 0) {
+        return res.render('editar', { 
+            personaje: {
+                id,
+                ...req.body
+            },
+            errores: errores
+        });
+    }
+    
+    // Sanitizar los datos antes de guardarlos
+    const datosSanitizados = sanitizarDatos(req.body);
+    
+    try {
+        await personajesCollection.doc(id).update({
+            nombre: datosSanitizados.nombre,
+            alias: datosSanitizados.alias,
+            rol: datosSanitizados.rol,
+            edad: datosSanitizados.edad,
+            ciudad: datosSanitizados.ciudad,
+            habilidades: datosSanitizados.habilidades,
+            descripcion: datosSanitizados.descripcion
+        });
+        
+        res.redirect('/');
+    } catch (error) {
+        console.error('Error al actualizar personaje:', error);
+        res.status(500).send('Error al actualizar personaje');
     }
 });
 

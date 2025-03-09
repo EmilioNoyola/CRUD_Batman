@@ -44,16 +44,17 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Función para validar campos
 function validarCampos(datos) {
-    const { nombre, alias, rol, edad, ciudad, habilidades, descripcion } = datos;
+    const { nombre, alias, rol, edad, ciudad, habilidades, debilidades, descripcion } = datos;
     const errores = [];
     
     // Límites de caracteres para cada campo
     const limites = {
         nombre: 50,
         alias: 30,
-        rol: 30,
+        rol: 6,
         ciudad: 50,
         habilidades: 200,
+        debilidades: 200,
         descripcion: 500
     };
     
@@ -64,7 +65,9 @@ function validarCampos(datos) {
     if (!alias || alias.trim() === '') errores.push('El alias es obligatorio');
     else if (alias.length > limites.alias) errores.push(`El alias no debe exceder ${limites.alias} caracteres`);
     
+    const rolesPermitidos = ['héroe', 'villano', 'aliado'];
     if (!rol || rol.trim() === '') errores.push('El rol es obligatorio');
+    else if (!rolesPermitidos.includes(rol)) errores.push('El rol debe ser héroe, villano o aliado');
     else if (rol.length > limites.rol) errores.push(`El rol no debe exceder ${limites.rol} caracteres`);
     
     if (!edad || isNaN(edad) || edad <= 0) errores.push('La edad debe ser un número positivo');
@@ -75,6 +78,9 @@ function validarCampos(datos) {
     
     if (!habilidades || habilidades.trim() === '') errores.push('Las habilidades son obligatorias');
     else if (habilidades.length > limites.habilidades) errores.push(`Las habilidades no deben exceder ${limites.habilidades} caracteres`);
+
+    if (!debilidades || debilidades.trim() === '') errores.push('Las debilidades son obligatorias');
+    else if (debilidades.length > limites.debilidades) errores.push(`Las debilidades no deben exceder ${limites.debilidades} caracteres`);
     
     if (!descripcion || descripcion.trim() === '') errores.push('La descripción es obligatoria');
     else if (descripcion.length > limites.descripcion) errores.push(`La descripción no debe exceder ${limites.descripcion} caracteres`);
@@ -98,7 +104,7 @@ function validarCampos(datos) {
     };
     
     // Verificar cada campo para tags HTML, código script y caracteres peligrosos
-    const camposTexto = { nombre, alias, ciudad, habilidades, descripcion };
+    const camposTexto = { nombre, alias, ciudad, habilidades, debilidades, descripcion };
     
     for (const [campo, valor] of Object.entries(camposTexto)) {
         if (typeof valor === 'string') {
@@ -196,6 +202,7 @@ app.post('/registrar', async (req, res) => {
             edad: datosSanitizados.edad,
             ciudad: datosSanitizados.ciudad,
             habilidades: datosSanitizados.habilidades,
+            debilidades: datosSanitizados.debilidades,
             descripcion: datosSanitizados.descripcion
         });
         
@@ -237,6 +244,7 @@ app.post('/actualizar/:id', async (req, res) => {
             edad: datosSanitizados.edad,
             ciudad: datosSanitizados.ciudad,
             habilidades: datosSanitizados.habilidades,
+            debilidades: datosSanitizados.debilidades,
             descripcion: datosSanitizados.descripcion
         });
         
@@ -311,7 +319,7 @@ app.post('/actualizar/:id', async (req, res) => {
         });
     }
     
-    const { nombre, alias, rol, edad, ciudad, habilidades, descripcion } = req.body;
+    const { nombre, alias, rol, edad, ciudad, habilidades, debilidades, descripcion } = req.body;
     
     try {
         await personajesCollection.doc(id).update({
@@ -321,6 +329,7 @@ app.post('/actualizar/:id', async (req, res) => {
             edad: parseInt(edad),
             ciudad,
             habilidades,
+            debilidades,
             descripcion
         });
         

@@ -290,10 +290,16 @@
                         <input type="text" name="ciudad" id="ciudad" class="form-control" value="<%= locals.datos ? datos.ciudad : '' %>" required>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label for="habilidades" class="form-label">Habilidades:</label>
-                    <input type="text" name="habilidades" id="habilidades" class="form-control" value="<%= locals.datos ? datos.habilidades : '' %>" required>
-                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="habilidades" class="form-label">Habilidades:</label>
+                        <input type="text" name="habilidades" id="habilidades" class="form-control" value="<%= locals.datos ? datos.habilidades : '' %>" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="debilidades" class="form-label">Debilidades:</label>
+                        <input type="text" name="debilidades" id="debilidades" class="form-control" value="<%= locals.datos ? datos.debilidades : '' %>" required>
+                    </div>
+                </div>                
                 <div class="mb-3">
                     <label for="descripcion" class="form-label">Descripción:</label>
                     <textarea name="descripcion" id="descripcion" class="form-control" rows="3" required><%= locals.datos ? datos.descripcion : '' %></textarea>
@@ -315,6 +321,7 @@
                             <th>Edad</th>
                             <th>Ciudad</th>
                             <th>Habilidades</th>
+                            <th>Debilidades</th>
                             <th>Descripción</th>
                             <th>Acciones</th>
                         </tr>
@@ -338,6 +345,7 @@
                             <td><%= personaje.edad %></td>
                             <td><%= personaje.ciudad %></td>
                             <td><%= personaje.habilidades %></td>
+                            <td><%= personaje.debilidades %></td>
                             <td><%= personaje.descripcion %></td>
                             <td class="td-actions">
                                 <div class="d-flex gap-2">

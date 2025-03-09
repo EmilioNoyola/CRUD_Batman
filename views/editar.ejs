@@ -220,7 +220,7 @@
         <!-- Alertas de error -->
         <% if (locals.errores && errores && errores.length > 0) { %>
             <div class="alert batman-alert">
-                <h4 class="alert-heading batman-alert-heading">Se encontraron errores:</h4>
+                <h4 class="alert-heading batman-alert-heading">No se puede actualizar:</h4>
                 <ul>
                     <% errores.forEach(error => { %>
                         <li><%= error %></li>
@@ -259,10 +259,16 @@
                     <input type="text" name="ciudad" id="ciudad" class="form-control" value="<%= personaje.ciudad %>" required>
                 </div>
             </div>
-            <div class="mb-3">
-                <label for="habilidades" class="form-label">Habilidades:</label>
-                <input type="text" name="habilidades" id="habilidades" class="form-control" value="<%= personaje.habilidades %>" required>
-            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="habilidades" class="form-label">Habilidades:</label>
+                    <input type="text" name="habilidades" id="habilidades" class="form-control" value="<%= locals.datos ? datos.habilidades : '' %>" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="debilidades" class="form-label">Debilidades:</label>
+                    <input type="text" name="debilidades" id="debilidades" class="form-control" value="<%= locals.datos ? datos.debilidades : '' %>" required>
+                </div>
+            </div>                      
             <div class="mb-3">
                 <label for="descripcion" class="form-label">Descripción:</label>
                 <textarea name="descripcion" id="descripcion" class="form-control" rows="3" required><%= personaje.descripcion %></textarea>

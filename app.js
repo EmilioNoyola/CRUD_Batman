@@ -31,9 +31,69 @@ admin.initializeApp({
 const db = admin.firestore();
 const personajesCollection = db.collection('personajes');
 
-// Middleware para procesar datos de formularios
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+// Configuración más estricta para body-parser
+app.use(bodyParser.urlencoded({
+    extended: true,
+    limit: '1mb',
+    parameterLimit: 50000, // Limita el número de parámetros
+    verify: (req, res, buf, encoding) => {
+        if (buf.length > 500000) { // ~500kb en bytes
+            throw new Error('Payload demasiado grande');
+        }
+    }
+}));
+
+app.use(bodyParser.json({
+    limit: '1mb',
+    verify: (req, res, buf, encoding) => {
+        if (buf.length > 500000) { // ~500kb en bytes
+            throw new Error('Payload demasiado grande');
+        }
+    }
+}));
+
+// Manejo específico del error de "request entity too large"
+app.use(async (err, req, res, next) => {
+    if (err.type === 'entity.too.large' || 
+        (err.message && err.message.includes('Payload demasiado grande')) ||
+        (err.message && err.message.includes('request entity too large'))) {
+        
+        try {
+            // Obtener la lista de personajes para renderizar la página completa
+            const snapshot = await personajesCollection.get();
+            const personajes = [];
+            
+            snapshot.forEach(doc => {
+                personajes.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+            
+            // Renderizar la página de índice con el mensaje de error
+            return res.render('index', { 
+                personajes: personajes, 
+                errores: ['El tamaño de los datos excede el límite permitido (máximo 1MB)'],
+                datos: req.body || {} // Pasar los datos que se pudieron capturar (podría estar vacío)
+            });
+        } catch (error) {
+            console.error('Error al obtener personajes:', error);
+            return res.status(500).send('Error al obtener personajes');
+        }
+    } else {
+        next(err);
+    }
+});
+
+app.use((req, res, next) => {
+    // Limitar el número de campos en el cuerpo de la solicitud
+    if (req.body && Object.keys(req.body).length > 20) {
+        return res.status(400).send('Demasiados campos en la solicitud');
+    }
+    
+    // Continuar con el siguiente middleware
+    next();
+});
 
 // Servir archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
@@ -57,6 +117,25 @@ function validarCampos(datos) {
         debilidades: 200,
         descripcion: 500
     };
+    
+    // Tamaño máximo para cualquier campo (para prevenir ataques DoS)
+    const MAX_INPUT_LENGTH = 10000;
+    
+    // Validar el tamaño de todos los campos de texto primero
+    for (const [campo, valor] of Object.entries(datos)) {
+        if (typeof valor === 'string') {
+            // Truncar cualquier campo que sea demasiado largo para prevenir procesamiento excesivo
+            if (valor.length > MAX_INPUT_LENGTH) {
+                errores.push(`El campo ${campo} excede el tamaño máximo permitido.)`);
+                datos[campo] = valor.substring(0, MAX_INPUT_LENGTH); // Truncar el valor para evitar procesamiento posterior excesivo
+            }
+        }
+    }
+
+    // Si hay errores de longitud, detener la validación
+    if (errores.length > 0) {
+        return errores;
+    }
     
     // Validar que ningún campo esté vacío
     if (!nombre || nombre.trim() === '') errores.push('El nombre es obligatorio');
@@ -296,47 +375,6 @@ app.get('/editar/:id', async (req, res) => {
     } catch (error) {
         console.error('Error al obtener datos para editar:', error);
         res.status(500).send('Error al obtener datos para editar');
-    }
-});
-
-// Actualizar personaje
-app.post('/actualizar/:id', async (req, res) => {
-    const id = req.params.id;
-    
-    if (!id) {
-        return res.status(400).send('ID de personaje inválido');
-    }
-    
-    const errores = validarCampos(req.body);
-    
-    if (errores.length > 0) {
-        return res.render('editar', { 
-            personaje: {
-                id,
-                ...req.body
-            },
-            errores: errores
-        });
-    }
-    
-    const { nombre, alias, rol, edad, ciudad, habilidades, debilidades, descripcion } = req.body;
-    
-    try {
-        await personajesCollection.doc(id).update({
-            nombre,
-            alias,
-            rol,
-            edad: parseInt(edad),
-            ciudad,
-            habilidades,
-            debilidades,
-            descripcion
-        });
-        
-        res.redirect('/');
-    } catch (error) {
-        console.error('Error al actualizar personaje:', error);
-        res.status(500).send('Error al actualizar personaje');
     }
 });
 

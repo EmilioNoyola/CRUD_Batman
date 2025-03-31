@@ -4,10 +4,24 @@ const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
-
 const app = express();
 
-// Configuración de Firebase con variables de entorno
+app.use(bodyParser.urlencoded({extended: true, limit: '1mb', parameterLimit: 50000, 
+    verify: (req, res, buf, encoding) => {
+        if (buf.length > 500000) { 
+            throw new Error('Payload demasiado grande');
+        }
+    }
+}));
+
+app.use(bodyParser.json({ limit: '1mb',
+    verify: (req, res, buf, encoding) => {
+        if (buf.length > 500000) { 
+            throw new Error('Payload demasiado grande');
+        }
+    }
+}));
+
 const serviceAccount = {
     "type": process.env.FIREBASE_TYPE || "service_account",
     "project_id": process.env.FIREBASE_PROJECT_ID,
@@ -22,44 +36,282 @@ const serviceAccount = {
     "universe_domain": process.env.FIREBASE_UNIVERSE_DOMAIN || "googleapis.com"
 };
 
-// Inicializar Firebase
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
 
-// Obtener referencia a Firestore
 const db = admin.firestore();
 const personajesCollection = db.collection('personajes');
+const usuariosCollection = db.collection('usuarios');
 
-// Configuración más estricta para body-parser
-app.use(bodyParser.urlencoded({
-    extended: true,
-    limit: '1mb',
-    parameterLimit: 50000, // Limita el número de parámetros
-    verify: (req, res, buf, encoding) => {
-        if (buf.length > 500000) { // ~500kb en bytes
-            throw new Error('Payload demasiado grande');
+// Configurar sesiones
+const session = require('express-session');
+const FirestoreStore = require('connect-session-firestore')(session);
+
+
+const crypto = require('crypto');
+
+// Función para generar hash de contraseñas
+function hashPassword(password, salt) {
+    if (!salt) {
+        salt = crypto.randomBytes(16).toString('hex');
+    }
+    
+    const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    
+    return {
+        hash,
+        salt
+    };
+}
+
+// Función para verificar contraseñas
+function verifyPassword(password, hash, salt) {
+    const hashVerify = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    return hash === hashVerify;
+} 
+
+// Middleware para proteger rutas
+function requireLogin(req, res, next) {
+    if (!req.session || !req.session.usuarioId) {
+        return res.redirect('/login');
+    }
+    next();
+}
+
+// Función para validar datos de registro e inicio de sesión
+function validarUsuario(datos, esRegistro = true) {
+    const errores = [];
+    const { nombre, email, password, confirmPassword } = datos;
+    
+    const MAX_INPUT_LENGTH = 100;
+    
+    // Validar email
+    if (!email || email.trim() === '') {
+        errores.push('El email es obligatorio');
+    } else if (email.length > MAX_INPUT_LENGTH) {
+        errores.push(`El email no debe exceder ${MAX_INPUT_LENGTH} caracteres`);
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errores.push('El formato del email no es válido');
+    }
+    
+    // Validar contraseña
+    if (!password || password.trim() === '') {
+        errores.push('La contraseña es obligatoria');
+    } else if (password.length < 6) {
+        errores.push('La contraseña debe tener al menos 6 caracteres');
+    } else if (password.length > MAX_INPUT_LENGTH) {
+        errores.push(`La contraseña no debe exceder ${MAX_INPUT_LENGTH} caracteres`);
+    }
+    
+    // Validaciones adicionales solo para registro
+    if (esRegistro) {
+        // Validar nombre
+        if (!nombre || nombre.trim() === '') {
+            errores.push('El nombre es obligatorio');
+        } else if (nombre.length > MAX_INPUT_LENGTH) {
+            errores.push(`El nombre no debe exceder ${MAX_INPUT_LENGTH} caracteres`);
         }
+        
+        // Validar confirmación de contraseña
+        if (!confirmPassword || confirmPassword.trim() === '') {
+            errores.push('La confirmación de contraseña es obligatoria');
+        } else if (confirmPassword !== password) {
+            errores.push('Las contraseñas no coinciden');
+        }
+    }
+    
+    // Validar contra inyección NoSQL y otros ataques
+    const contieneScript = (texto) => {
+        return /<script[\s\S]*?>|javascript:|on\w+\s*=|eval\(|new Function\(|document\.cookie/i.test(texto);
+    };
+    
+    const contieneCaracteresPeligrosos = (texto) => {
+        return /[\u0000-\u001F\u007F-\u009F\u2000-\u200F\uFEFF]|[{}\[\]]/i.test(texto);
+    };
+    
+    const contieneTags = (texto) => {
+        return /<\/?[a-z][\s\S]*>/i.test(texto) || /<[a-z]+\s*$/i.test(texto) || /^\s*>[^<]*$/i.test(texto);       
+    };
+    
+    const camposTexto = { nombre, email, password };
+    
+    for (const [campo, valor] of Object.entries(camposTexto)) {
+        if (typeof valor === 'string') {
+            if (contieneTags(valor)) {
+                errores.push(`El campo ${campo} contiene etiquetas HTML no permitidas`);
+            }
+            if (contieneScript(valor)) {
+                errores.push(`El campo ${campo} contiene código JavaScript no permitido`);
+            }
+            if (contieneCaracteresPeligrosos(valor)) {
+                errores.push(`El campo ${campo} contiene caracteres de control no permitidos`);
+            }
+        }
+    }
+    
+    return errores;
+}
+
+app.use(session({
+    store: new FirestoreStore({
+        database: db
+    }),
+    secret: process.env.SESSION_SECRET || 'batmansecret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 3600000  // 1 hora
     }
 }));
 
-app.use(bodyParser.json({
-    limit: '1mb',
-    verify: (req, res, buf, encoding) => {
-        if (buf.length > 500000) { // ~500kb en bytes
-            throw new Error('Payload demasiado grande');
-        }
+// Rutas de autenticación
+app.get('/login', (req, res) => {
+    if (req.session && req.session.usuarioId) {
+        return res.redirect('/');
     }
-}));
+    res.render('login', { errores: null });
+});
 
-// Manejo específico del error de "request entity too large"
+app.post('/login', async (req, res) => {
+    const errores = validarUsuario(req.body, false);
+    
+    if (errores.length > 0) {
+        return res.render('login', { 
+            errores: errores,
+            datos: req.body
+        });
+    }
+    
+    const { email, password } = req.body;
+    
+    try {
+        // Buscar usuario por email
+        const snapshot = await usuariosCollection.where('email', '==', email.trim().toLowerCase()).get();
+        
+        if (snapshot.empty) {
+            return res.render('login', { 
+                errores: ['Email o contraseña incorrectos'],
+                datos: req.body
+            });
+        }
+        
+        let usuario = null;
+        snapshot.forEach(doc => {
+            usuario = {
+                id: doc.id,
+                ...doc.data()
+            };
+        });
+        
+        // Verificar contraseña
+        if (!usuario || !verifyPassword(password, usuario.hash, usuario.salt)) {
+            return res.render('login', { 
+                errores: ['Email o contraseña incorrectos'],
+                datos: req.body
+            });
+        }
+        
+        // Iniciar sesión
+        req.session.usuarioId = usuario.id;
+        req.session.nombre = usuario.nombre;
+        
+        res.redirect('/');
+    } catch (error) {
+        console.error('Error al iniciar sesión:', error);
+        return res.render('login', { 
+            errores: ['Error al iniciar sesión. Inténtalo más tarde.'],
+            datos: req.body
+        });
+    }
+});
+
+app.get('/registro', (req, res) => {
+    if (req.session && req.session.usuarioId) {
+        return res.redirect('/');
+    }
+    res.render('registro', { errores: null });
+});
+
+app.post('/registro', async (req, res) => {
+    const errores = validarUsuario(req.body);
+    
+    if (errores.length > 0) {
+        return res.render('registro', { 
+            errores: errores,
+            datos: req.body
+        });
+    }
+    
+    const { nombre, email, password } = req.body;
+    
+    try {
+        // Verificar si el email ya está registrado
+        const snapshot = await usuariosCollection.where('email', '==', email.trim().toLowerCase()).get();
+        
+        if (!snapshot.empty) {
+            return res.render('registro', { 
+                errores: ['El email ya está registrado'],
+                datos: req.body
+            });
+        }
+        
+        // Crear hash de la contraseña
+        const { hash, salt } = hashPassword(password);
+        
+        // Registrar usuario
+        await usuariosCollection.add({
+            nombre: nombre.trim(),
+            email: email.trim().toLowerCase(),
+            hash,
+            salt,
+            fechaCreacion: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Redirigir a login
+        res.redirect('/login?registrado=1');
+    } catch (error) {
+        console.error('Error al registrar usuario:', error);
+        return res.render('registro', { 
+            errores: ['Error al registrar usuario. Inténtalo más tarde.'],
+            datos: req.body
+        });
+    }
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/login');
+});
+
+// Modificar la ruta principal
+app.get('/', requireLogin, async (req, res) => {
+    try {
+        const snapshot = await personajesCollection.get();
+        const personajes = [];
+        
+        snapshot.forEach(doc => {
+            personajes.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        res.render('index', { personajes: personajes, errores: null, nombre: req.session.nombre });
+    } catch (error) {
+        console.error('Error al obtener personajes:', error);
+        res.status(500).send('Error al obtener personajes');
+    }
+});
+
 app.use(async (err, req, res, next) => {
     if (err.type === 'entity.too.large' || 
         (err.message && err.message.includes('Payload demasiado grande')) ||
         (err.message && err.message.includes('request entity too large'))) {
         
         try {
-            // Obtener la lista de personajes para renderizar la página completa
             const snapshot = await personajesCollection.get();
             const personajes = [];
             
@@ -70,11 +322,10 @@ app.use(async (err, req, res, next) => {
                 });
             });
             
-            // Renderizar la página de índice con el mensaje de error
             return res.render('index', { 
                 personajes: personajes, 
                 errores: ['El tamaño de los datos excede el límite permitido (máximo 1MB)'],
-                datos: req.body || {} // Pasar los datos que se pudieron capturar (podría estar vacío)
+                datos: req.body || {}
             });
         } catch (error) {
             console.error('Error al obtener personajes:', error);
@@ -86,28 +337,23 @@ app.use(async (err, req, res, next) => {
 });
 
 app.use((req, res, next) => {
-    // Limitar el número de campos en el cuerpo de la solicitud
     if (req.body && Object.keys(req.body).length > 20) {
         return res.status(400).send('Demasiados campos en la solicitud');
     }
     
-    // Continuar con el siguiente middleware
     next();
 });
 
-// Servir archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configurar EJS como motor de plantillas
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Función para validar campos
+// Validación 
 function validarCampos(datos) {
     const { nombre, alias, rol, edad, ciudad, habilidades, debilidades, descripcion } = datos;
     const errores = [];
     
-    // Límites de caracteres para cada campo
     const limites = {
         nombre: 50,
         alias: 30,
@@ -118,26 +364,21 @@ function validarCampos(datos) {
         descripcion: 500
     };
     
-    // Tamaño máximo para cualquier campo (para prevenir ataques DoS)
     const MAX_INPUT_LENGTH = 10000;
     
-    // Validar el tamaño de todos los campos de texto primero
     for (const [campo, valor] of Object.entries(datos)) {
         if (typeof valor === 'string') {
-            // Truncar cualquier campo que sea demasiado largo para prevenir procesamiento excesivo
             if (valor.length > MAX_INPUT_LENGTH) {
                 errores.push(`El campo ${campo} excede el tamaño máximo permitido.)`);
-                datos[campo] = valor.substring(0, MAX_INPUT_LENGTH); // Truncar el valor para evitar procesamiento posterior excesivo
+                datos[campo] = valor.substring(0, MAX_INPUT_LENGTH);
             }
         }
     }
 
-    // Si hay errores de longitud, detener la validación
     if (errores.length > 0) {
         return errores;
     }
     
-    // Validar que ningún campo esté vacío
     if (!nombre || nombre.trim() === '') errores.push('El nombre es obligatorio');
     else if (nombre.length > limites.nombre) errores.push(`El nombre no debe exceder ${limites.nombre} caracteres`);
     
@@ -164,25 +405,18 @@ function validarCampos(datos) {
     if (!descripcion || descripcion.trim() === '') errores.push('La descripción es obligatoria');
     else if (descripcion.length > limites.descripcion) errores.push(`La descripción no debe exceder ${limites.descripcion} caracteres`);
     
-    // Validar que no contenga etiquetas HTML o JavaScript
     const contieneTags = (texto) => {
-        // Regex que detecta etiquetas HTML/XML abiertas, cerradas, o parciales
-        return /<\/?[a-z][\s\S]*>/i.test(texto) || 
-               /<[a-z]+\s*$/i.test(texto) ||     // Tag que solo inicia
-               /^\s*>[^<]*$/i.test(texto);       // Tag que solo termina
+        return /<\/?[a-z][\s\S]*>/i.test(texto) || /<[a-z]+\s*$/i.test(texto) || /^\s*>[^<]*$/i.test(texto);       
     };
     
     const contieneScript = (texto) => {
-        // Regex que detecta tags <script> o código JavaScript sospechoso
         return /<script[\s\S]*?>|javascript:|on\w+\s*=|eval\(|new Function\(|document\.cookie/i.test(texto);
     };
     
-    // Validación contra caracteres especiales potencialmente peligrosos
     const contieneCaracteresPeligrosos = (texto) => {
         return /[\u0000-\u001F\u007F-\u009F\u2000-\u200F\uFEFF]/.test(texto);
     };
     
-    // Verificar cada campo para tags HTML, código script y caracteres peligrosos
     const camposTexto = { nombre, alias, ciudad, habilidades, debilidades, descripcion };
     
     for (const [campo, valor] of Object.entries(camposTexto)) {
@@ -201,21 +435,17 @@ function validarCampos(datos) {
     return errores;
 }
 
-// Función para sanitizar los datos antes de guardarlos en la base de datos
 function sanitizarDatos(datos) {
     const datosSanitizados = {};
     
-    // Para cada campo, eliminar espacios extras y sanitizar
     for (const [campo, valor] of Object.entries(datos)) {
         if (typeof valor === 'string') {
-            // Eliminar espacios en blanco al inicio y final, y reemplazar múltiples espacios por uno solo
             datosSanitizados[campo] = valor.trim().replace(/\s+/g, ' ');
         } else {
             datosSanitizados[campo] = valor;
         }
     }
     
-    // Asegurar que edad sea un número
     if (datos.edad) {
         datosSanitizados.edad = parseInt(datos.edad, 10) || 0;
     }
@@ -223,7 +453,6 @@ function sanitizarDatos(datos) {
     return datosSanitizados;
 }
 
-// Página principal - mostrar formulario y lista
 app.get('/', async (req, res) => {
     try {
         const snapshot = await personajesCollection.get();
@@ -243,7 +472,6 @@ app.get('/', async (req, res) => {
     }
 });
 
-// Registrar un personaje
 app.post('/registrar', async (req, res) => {
     const errores = validarCampos(req.body);
     
@@ -270,7 +498,6 @@ app.post('/registrar', async (req, res) => {
         }
     }
     
-    // Sanitizar los datos antes de guardarlos
     const datosSanitizados = sanitizarDatos(req.body);
     
     try {
@@ -292,66 +519,6 @@ app.post('/registrar', async (req, res) => {
     }
 });
 
-// Actualizar personaje
-app.post('/actualizar/:id', async (req, res) => {
-    const id = req.params.id;
-    
-    if (!id) {
-        return res.status(400).send('ID de personaje inválido');
-    }
-    
-    const errores = validarCampos(req.body);
-    
-    if (errores.length > 0) {
-        return res.render('editar', { 
-            personaje: {
-                id,
-                ...req.body
-            },
-            errores: errores
-        });
-    }
-    
-    // Sanitizar los datos antes de guardarlos
-    const datosSanitizados = sanitizarDatos(req.body);
-    
-    try {
-        await personajesCollection.doc(id).update({
-            nombre: datosSanitizados.nombre,
-            alias: datosSanitizados.alias,
-            rol: datosSanitizados.rol,
-            edad: datosSanitizados.edad,
-            ciudad: datosSanitizados.ciudad,
-            habilidades: datosSanitizados.habilidades,
-            debilidades: datosSanitizados.debilidades,
-            descripcion: datosSanitizados.descripcion
-        });
-        
-        res.redirect('/');
-    } catch (error) {
-        console.error('Error al actualizar personaje:', error);
-        res.status(500).send('Error al actualizar personaje');
-    }
-});
-
-// Eliminar un personaje
-app.post('/eliminar/:id', async (req, res) => {
-    const id = req.params.id;
-    
-    if (!id) {
-        return res.status(400).send('ID de personaje inválido');
-    }
-    
-    try {
-        await personajesCollection.doc(id).delete();
-        res.redirect('/');
-    } catch (error) {
-        console.error('Error al eliminar personaje:', error);
-        res.status(500).send('Error al eliminar personaje');
-    }
-});
-
-// Editar un personaje (mostrar formulario con datos)
 app.get('/editar/:id', async (req, res) => {
     const id = req.params.id;
     
@@ -378,6 +545,61 @@ app.get('/editar/:id', async (req, res) => {
     }
 });
 
-// Iniciar servidor
+app.post('/actualizar/:id', async (req, res) => {
+    const id = req.params.id;
+    
+    if (!id) {
+        return res.status(400).send('ID de personaje inválido');
+    }
+    
+    const errores = validarCampos(req.body);
+    
+    if (errores.length > 0) {
+        return res.render('editar', { 
+            personaje: {
+                id,
+                ...req.body
+            },
+            errores: errores
+        });
+    }
+    
+    const datosSanitizados = sanitizarDatos(req.body);
+    
+    try {
+        await personajesCollection.doc(id).update({
+            nombre: datosSanitizados.nombre,
+            alias: datosSanitizados.alias,
+            rol: datosSanitizados.rol,
+            edad: datosSanitizados.edad,
+            ciudad: datosSanitizados.ciudad,
+            habilidades: datosSanitizados.habilidades,
+            debilidades: datosSanitizados.debilidades,
+            descripcion: datosSanitizados.descripcion
+        });
+        
+        res.redirect('/');
+    } catch (error) {
+        console.error('Error al actualizar personaje:', error);
+        res.status(500).send('Error al actualizar personaje');
+    }
+});
+
+app.post('/eliminar/:id', async (req, res) => {
+    const id = req.params.id;
+    
+    if (!id) {
+        return res.status(400).send('ID de personaje inválido');
+    }
+    
+    try {
+        await personajesCollection.doc(id).delete();
+        res.redirect('/');
+    } catch (error) {
+        console.error('Error al eliminar personaje:', error);
+        res.status(500).send('Error al eliminar personaje');
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor en http://localhost:${PORT}`));

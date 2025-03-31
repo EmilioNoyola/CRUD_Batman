@@ -13,10 +13,13 @@
   "type": "commonjs",
   "dependencies": {
     "body-parser": "^1.20.3",
+    "connect-session-firestore": "^1.0.0",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
+    "express-session": "^1.18.1",
     "express-validator": "^7.2.1",
     "firebase": "^11.4.0",
     "firebase-admin": "^13.2.0",

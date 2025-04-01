@@ -45,7 +45,6 @@ admin.initializeApp({
 const db = admin.firestore();
 const personajesCollection = db.collection('personajes');
 const usuariosCollection = db.collection('usuarios');
-const FirestoreStore = require('connect-session-firestore')(session);
 
 // Función para generar hash de contraseñas
 function hashPassword(password, salt) {
@@ -149,16 +148,22 @@ function validarUsuario(datos, esRegistro = true) {
     return errores;
 }
 
+const { Firestore } = require('@google-cloud/firestore');
+const { FirestoreStore } = require('@google-cloud/connect-firestore');
+
 app.use(session({
-    // Remove the store property or use MemoryStore for testing
-    // store: createFirestoreStore(),
+    store: new FirestoreStore({
+        dataset: db,
+        kind: 'express-sessions',
+    }),
     secret: process.env.SESSION_SECRET || 'batmansecret',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 3600000  
+        secure: process.env.NODE_ENV === 'production', // Solo true en producción
+        httpOnly: true,
+        maxAge: 3600000,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
 }));
 
@@ -447,25 +452,6 @@ function sanitizarDatos(datos) {
     
     return datosSanitizados;
 }
-
-app.get('/', async (req, res) => {
-    try {
-        const snapshot = await personajesCollection.get();
-        const personajes = [];
-        
-        snapshot.forEach(doc => {
-            personajes.push({
-                id: doc.id,
-                ...doc.data()
-            });
-        });
-        
-        res.render('index', { personajes: personajes, errores: null });
-    } catch (error) {
-        console.error('Error al obtener personajes:', error);
-        res.status(500).send('Error al obtener personajes');
-    }
-});
 
 app.post('/registrar', async (req, res) => {
     const errores = validarCampos(req.body);

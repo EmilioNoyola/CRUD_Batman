@@ -1,10 +1,12 @@
 require('dotenv').config();
 
 const express = require('express');
+const session = require('express-session');
 const path = require('path');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 const app = express();
+const crypto = require('crypto');
 
 app.use(bodyParser.urlencoded({extended: true, limit: '1mb', parameterLimit: 50000, 
     verify: (req, res, buf, encoding) => {
@@ -43,13 +45,7 @@ admin.initializeApp({
 const db = admin.firestore();
 const personajesCollection = db.collection('personajes');
 const usuariosCollection = db.collection('usuarios');
-
-// Configurar sesiones
-const session = require('express-session');
 const FirestoreStore = require('connect-session-firestore')(session);
-
-
-const crypto = require('crypto');
 
 // Función para generar hash de contraseñas
 function hashPassword(password, salt) {
@@ -154,16 +150,15 @@ function validarUsuario(datos, esRegistro = true) {
 }
 
 app.use(session({
-    store: new FirestoreStore({
-        database: db
-    }),
+    // Remove the store property or use MemoryStore for testing
+    // store: createFirestoreStore(),
     secret: process.env.SESSION_SECRET || 'batmansecret',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        maxAge: 3600000  // 1 hora
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 3600000  
     }
 }));
 

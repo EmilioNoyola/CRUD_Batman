@@ -159,10 +159,11 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production', // Solo true en producción
+        // Verifica si Railway usa HTTPS o HTTP
+        secure: false, // Cambia a true solo si Railway soporta HTTPS
         httpOnly: true,
         maxAge: 3600000,
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        sameSite: 'lax' // Cambia a 'none' solo si realmente necesitas cross-site
     }
 }));
 

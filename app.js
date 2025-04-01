@@ -45,6 +45,8 @@ admin.initializeApp({
 const db = admin.firestore();
 const personajesCollection = db.collection('personajes');
 const usuariosCollection = db.collection('usuarios');
+const { Firestore } = require('@google-cloud/firestore');
+const { FirestoreStore } = require('@google-cloud/connect-firestore');
 
 // Función para generar hash de contraseñas
 function hashPassword(password, salt) {
@@ -148,9 +150,6 @@ function validarUsuario(datos, esRegistro = true) {
     return errores;
 }
 
-const { Firestore } = require('@google-cloud/firestore');
-const { FirestoreStore } = require('@google-cloud/connect-firestore');
-
 app.use(session({
     store: new FirestoreStore({
         dataset: db,
@@ -186,6 +185,8 @@ app.post('/login', async (req, res) => {
     }
     
     const { email, password } = req.body;
+
+    console.log('Inicio de sesión intentado para:', req.body.email);
     
     try {
         // Buscar usuario por email
@@ -205,6 +206,8 @@ app.post('/login', async (req, res) => {
                 ...doc.data()
             };
         });
+
+        console.log('Usuario encontrado:', usuario ? usuario.id : 'no encontrado');
         
         // Verificar contraseña
         if (!usuario || !verifyPassword(password, usuario.hash, usuario.salt)) {
@@ -219,12 +222,14 @@ app.post('/login', async (req, res) => {
         req.session.nombre = usuario.nombre;
         
         res.redirect('/');
+        console.log('Sesión iniciada, ID:', req.session.usuarioId);
     } catch (error) {
         console.error('Error al iniciar sesión:', error);
         return res.render('login', { 
             errores: ['Error al iniciar sesión. Inténtalo más tarde.'],
             datos: req.body
         });
+        console.error('Error detallado:', error);
     }
 });
 

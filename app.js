@@ -94,10 +94,42 @@ function validarUsuario(datos, esRegistro = true) {
     // Validar contraseña
     if (!password || password.trim() === '') {
         errores.push('La contraseña es obligatoria');
-    } else if (password.length < 6) {
-        errores.push('La contraseña debe tener al menos 6 caracteres');
+    } else if (password.length < 8) { // Incrementado a 8 caracteres mínimo
+        errores.push('La contraseña debe tener al menos 8 caracteres');
     } else if (password.length > MAX_INPUT_LENGTH) {
         errores.push(`La contraseña no debe exceder ${MAX_INPUT_LENGTH} caracteres`);
+    } else {
+        // Validaciones adicionales de seguridad
+        const tieneMinuscula = /[a-z]/.test(password);
+        const tieneMayuscula = /[A-Z]/.test(password);
+        const tieneNumero = /[0-9]/.test(password);
+        const tieneEspecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+        
+        if (!tieneMinuscula) {
+            errores.push('La contraseña debe contener al menos una letra minúscula');
+        }
+        if (!tieneMayuscula) {
+            errores.push('La contraseña debe contener al menos una letra mayúscula');
+        }
+        if (!tieneNumero) {
+            errores.push('La contraseña debe contener al menos un número');
+        }
+        if (!tieneEspecial) {
+            errores.push('La contraseña debe contener al menos un carácter especial (!@#$%^&*()_+-=[]{};\'"\\|,.<>/?)');
+        }
+        
+        // Buscar patrones comunes inseguros
+        const patronesComunes = [
+            /^(123456|password|contraseña|qwerty|abc123)$/i,
+            /(.)\1{2,}/  // Repetición del mismo carácter más de 2 veces seguidas
+        ];
+        
+        for (const patron of patronesComunes) {
+            if (patron.test(password)) {
+                errores.push('La contraseña contiene patrones comunes o repetitivos');
+                break;
+            }
+        }
     }
     
     // Validaciones adicionales solo para registro

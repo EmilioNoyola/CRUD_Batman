@@ -417,6 +417,10 @@ function validarCampos(datos) {
     const contieneCaracteresPeligrosos = (texto) => {
         return /[\u0000-\u001F\u007F-\u009F\u2000-\u200F\uFEFF]/.test(texto);
     };
+
+    const contieneInyeccionSQL = (texto) => {
+        return /(\b(select|insert|update|delete|drop|alter|create|exec|union|where)\b.*\b(from|into|table|database|values)\b)|(-{2,}|\/\*|\*\/|;.*;|@{2}|char\s*\(\s*\d+\s*\)|convert\s*\(|declare\s+@|set\s+@|exec\s+\(|xp_|sp_|waitfor\s+delay)/i.test(texto);
+    };
     
     const camposTexto = { nombre, alias, ciudad, habilidades, debilidades, descripcion };
     
@@ -430,6 +434,9 @@ function validarCampos(datos) {
             }
             if (contieneCaracteresPeligrosos(valor)) {
                 errores.push(`El campo ${campo} contiene caracteres de control no permitidos`);
+            }
+            if (contieneInyeccionSQL(valor)) {
+                errores.push(`El campo ${campo} contiene patrones de inyección SQL no permitidos`);
             }
         }
     }

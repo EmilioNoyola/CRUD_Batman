@@ -33,6 +33,12 @@
                 width: 80%;
                 max-width: 900px;
             }
+
+            .batman-header {
+                margin-bottom: 30px;
+                border-bottom: 2px solid var(--batman-dark-red);
+                padding-bottom: 15px;
+            }
         
             .batman-container::before {
                 content: "";
@@ -45,14 +51,9 @@
             }
 
             .batman-title {
-                color: var(--batman-red);
-                font-weight: bold;
-                text-transform: uppercase;
-                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin-bottom: 5px; /* Reducido de 10px a 5px */
+                font-size: 2rem;
+                letter-spacing: 2px;
+                margin-bottom: 0;
             }
 
             .batman-subtitle {
@@ -239,19 +240,71 @@
                     font-size: 0.9rem;
                 }
             }
+            .batman-title {
+                font-size: 2rem;
+                letter-spacing: 2px;
+                margin-bottom: 0;
+            }
+
+            .user-section .batman-btn {
+                background-color: var(--batman-dark-grey);
+                color: white;
+                transition: all 0.3s ease;
+            }
+
+            .user-section .batman-btn:hover {
+                background-color: var(--batman-red);
+                color: white;
+            }
+
+            .batman-btn-warning, .batman-btn-danger {
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                padding: 0;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            }
+
+            .dropdown-menu-dark {
+                background-color: var(--batman-black);
+                border: 1px solid var(--batman-red);
+            }
+
+            .dropdown-item:hover {
+                background-color: var(--batman-red);
+            }
+
+            /* Para mejorar la visualización en móviles */
+            @media (max-width: 767px) {
+                .batman-header {
+                    flex-direction: column;
+                    text-align: center;
+                    gap: 15px;
+                }
+                
+                .batman-btn-warning, .batman-btn-danger {
+                    width: 36px;
+                    height: 36px;
+                }
+            }
         </style>
     </head>
     <body>
         <div class="gotham-backdrop"></div>
         <div class="container batman-container">
-            <div class="batman-header text-center">
-                <h2 class="batman-title">FORMULARIO<span class="batman-logo"></span></h2>
-                <div class="d-flex justify-content-end mb-3">
+            <div class="batman-header d-flex justify-content-between align-items-center mb-4">
+                <h2 class="batman-title">
+                    <i class="fas fa-bat-signal me-2"></i>REGISTRO DE PERSONAJES
+                </h2>
+                <div class="user-section">
                     <div class="dropdown">
                         <button class="btn batman-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user me-2"></i><%= locals.nombre %>
+                            <i class="fas fa-user-circle me-2"></i><%= locals.nombre %>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="userDropdown">
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
                         </ul>
                     </div>
@@ -331,7 +384,7 @@
                             <th>Habilidades</th>
                             <th>Debilidades</th>
                             <th>Descripción</th>
-                            <th>Acciones</th>
+                            <th width="150">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -355,14 +408,14 @@
                             <td><%= personaje.habilidades %></td>
                             <td><%= personaje.debilidades %></td>
                             <td><%= personaje.descripcion %></td>
-                            <td class="td-actions">
-                                <div class="d-flex gap-2">
-                                    <a href="/editar/<%= personaje.id %>" class="btn batman-btn-warning btn-sm">
-                                        <i class="fas fa-edit me-1"></i>Editar
+                            <td>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="/editar/<%= personaje.id %>" class="btn batman-btn-warning btn-sm" title="Editar">
+                                        <i class="fas fa-edit"></i>
                                     </a>
                                     <form action="/eliminar/<%= personaje.id %>" method="post" style="display:inline;">
-                                        <button type="submit" class="btn batman-btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar a <%= personaje.alias %>?')">
-                                            <i class="fas fa-trash-alt me-1"></i>Eliminar
+                                        <button type="submit" class="btn batman-btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar a <%= personaje.alias %>?')" title="Eliminar">
+                                            <i class="fas fa-trash-alt"></i>
                                         </button>
                                     </form>
                                 </div>

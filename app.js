@@ -45,7 +45,6 @@ admin.initializeApp({
 const db = admin.firestore();
 const personajesCollection = db.collection('personajes');
 const usuariosCollection = db.collection('usuarios');
-const { Firestore } = require('@google-cloud/firestore');
 const { FirestoreStore } = require('@google-cloud/connect-firestore');
 
 // Función para generar hash de contraseñas
@@ -130,6 +129,10 @@ function validarUsuario(datos, esRegistro = true) {
     const contieneTags = (texto) => {
         return /<\/?[a-z][\s\S]*>/i.test(texto) || /<[a-z]+\s*$/i.test(texto) || /^\s*>[^<]*$/i.test(texto);       
     };
+
+    const contieneInyeccionSQL = (texto) => {
+        return /(\b(select|insert|update|delete|drop|alter|create|exec|union|where)\b.*\b(from|into|table|database|values)\b)|(-{2,}|\/\*|\*\/|;.*;|@{2}|char\s*\(\s*\d+\s*\)|convert\s*\(|declare\s+@|set\s+@|exec\s+\(|xp_|sp_|waitfor\s+delay)/i.test(texto);
+    };
     
     const camposTexto = { nombre, email, password };
     
@@ -143,6 +146,9 @@ function validarUsuario(datos, esRegistro = true) {
             }
             if (contieneCaracteresPeligrosos(valor)) {
                 errores.push(`El campo ${campo} contiene caracteres de control no permitidos`);
+            }
+            if (contieneInyeccionSQL(valor)) {
+                errores.push(`El campo ${campo} contiene patrones de inyección SQL no permitidos`);
             }
         }
     }
@@ -159,15 +165,13 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        // Verifica si Railway usa HTTPS o HTTP
-        secure: false, // Cambia a true solo si Railway soporta HTTPS
+        secure: false, 
         httpOnly: true,
         maxAge: 3600000,
-        sameSite: 'lax' // Cambia a 'none' solo si realmente necesitas cross-site
+        sameSite: 'lax' 
     }
 }));
 
-// Rutas de autenticación
 app.get('/login', (req, res) => {
     if (req.session && req.session.usuarioId) {
         return res.redirect('/');
@@ -190,7 +194,6 @@ app.post('/login', async (req, res) => {
     console.log('Inicio de sesión intentado para:', req.body.email);
     
     try {
-        // Buscar usuario por email
         const snapshot = await usuariosCollection.where('email', '==', email.trim().toLowerCase()).get();
         
         if (snapshot.empty) {
@@ -210,7 +213,6 @@ app.post('/login', async (req, res) => {
 
         console.log('Usuario encontrado:', usuario ? usuario.id : 'no encontrado');
         
-        // Verificar contraseña
         if (!usuario || !verifyPassword(password, usuario.hash, usuario.salt)) {
             return res.render('login', { 
                 errores: ['Email o contraseña incorrectos'],
@@ -218,7 +220,6 @@ app.post('/login', async (req, res) => {
             });
         }
         
-        // Iniciar sesión
         req.session.usuarioId = usuario.id;
         req.session.nombre = usuario.nombre;
         
@@ -254,7 +255,6 @@ app.post('/registro', async (req, res) => {
     const { nombre, email, password } = req.body;
     
     try {
-        // Verificar si el email ya está registrado
         const snapshot = await usuariosCollection.where('email', '==', email.trim().toLowerCase()).get();
         
         if (!snapshot.empty) {
@@ -264,10 +264,8 @@ app.post('/registro', async (req, res) => {
             });
         }
         
-        // Crear hash de la contraseña
         const { hash, salt } = hashPassword(password);
         
-        // Registrar usuario
         await usuariosCollection.add({
             nombre: nombre.trim(),
             email: email.trim().toLowerCase(),
@@ -276,7 +274,6 @@ app.post('/registro', async (req, res) => {
             fechaCreacion: admin.firestore.FieldValue.serverTimestamp()
         });
         
-        // Redirigir a login
         res.redirect('/login?registrado=1');
     } catch (error) {
         console.error('Error al registrar usuario:', error);
@@ -292,7 +289,6 @@ app.get('/logout', (req, res) => {
     res.redirect('/login');
 });
 
-// Modificar la ruta principal
 app.get('/', requireLogin, async (req, res) => {
     try {
         const snapshot = await personajesCollection.get();
@@ -355,7 +351,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Validación 
 function validarCampos(datos) {
     const { nombre, alias, rol, edad, ciudad, habilidades, debilidades, descripcion } = datos;
     const errores = [];

@@ -147,44 +147,43 @@
         }
     </style>
 </head>
-<body>
-    <div class="gotham-backdrop"></div>
-    <div class="container batman-container">
-        <div class="batman-header text-center">
-            <h2 class="batman-title">INICIAR SESIÓN</h2>
-            <p class="batman-subtitle">Noyola Gómez Emilio Damian</p>
+    <body>
+        <div class="gotham-backdrop"></div>
+        <div class="container batman-container">
+            <div class="batman-header text-center">
+                <h2 class="batman-title">INICIAR SESIÓN</h2>
+                <p class="batman-subtitle">Noyola Gómez Emilio Damian</p>
+            </div>
+            
+            <% if (locals.errores && errores && errores.length > 0) { %>
+                <div class="alert batman-alert">
+                    <h4 class="alert-heading batman-alert-heading">Error al iniciar sesión:</h4>
+                    <ul>
+                        <% errores.forEach(error => { %>
+                            <li><%= error %></li>
+                        <% }); %>
+                    </ul>
+                </div>
+            <% } %>
+            
+            <form action="/login" method="post" class="batman-form">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email:</label>
+                    <input type="email" name="email" id="email" class="form-control" value="<%= locals.datos ? datos.email : '' %>" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña:</label>
+                    <input type="password" name="password" id="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn batman-btn">
+                    <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                </button>
+            </form>
+            
+            <div class="register-link">
+                ¿No tienes una cuenta? <a href="/registro">Regístrate aquí</a>
+            </div>
         </div>
-        
-        <% if (locals.errores && errores && errores.length > 0) { %>
-            <div class="alert batman-alert">
-                <h4 class="alert-heading batman-alert-heading">Error al iniciar sesión:</h4>
-                <ul>
-                    <% errores.forEach(error => { %>
-                        <li><%= error %></li>
-                    <% }); %>
-                </ul>
-            </div>
-        <% } %>
-        
-        <form action="/login" method="post" class="batman-form">
-            <div class="mb-3">
-                <label for="email" class="form-label">Email:</label>
-                <input type="email" name="email" id="email" class="form-control" value="<%= locals.datos ? datos.email : '' %>" required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Contraseña:</label>
-                <input type="password" name="password" id="password" class="form-control" required>
-            </div>
-            <button type="submit" class="btn batman-btn">
-                <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
-            </button>
-        </form>
-        
-        <div class="register-link">
-            ¿No tienes una cuenta? <a href="/registro">Regístrate aquí</a>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
 </html>
